@@ -2,4 +2,6 @@ Flask==3.*
 Flask-SQLAlchemy==3.*
 SQLAlchemy==2.*
 psycopg2-binary==2.*
+requests==2.*
+python-dotenv==1.*
 pytest==8.*

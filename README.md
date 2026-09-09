@@ -183,4 +183,73 @@ next slice that doesn't block on them: **wire up the real MiniMax
 integration** behind the same `send_message` interface the mock uses,
 and iterate on the actual broker system prompt against it — that's
 useful and testable regardless of how the chain questions resolve.
+**This is now done — see below.**
+
+---
+
+# Real MiniMax Client
+
+`app/services/minimax_client.py` implements `MiniMaxClient`, satisfying
+the exact same interface as `MockMiniMaxClient`
+(`send_message(system_prompt, user_message) -> str`), so it drops into
+`game_service.submit_attempt(..., ai_client=...)` with zero changes to
+the orchestrator. `tests/test_minimax_client.py::test_real_client_drops_into_game_service_unchanged`
+proves this directly.
+
+## Configuration
+
+Set these in your `.env` file (never commit it — already in `.gitignore`):
+
+```
+MINIMAX_API_KEY=your-key-here
+MINIMAX_MODEL=MiniMax-M3          # optional, see note below
+MINIMAX_BASE_URL=https://api.minimax.io/v1   # optional, see note below
+```
+
+`app/factory.py` now calls `load_dotenv()` on startup, so these are
+picked up automatically when you run the app or the test suite locally.
+
+**Two things to confirm with the project owner before going live:**
+1. **Which MiniMax model** — MiniMax currently has several active model
+   lines (`MiniMax-M3`, `MiniMax-Text-01`, `M2-her`, and others).
+   `MiniMax-M3` is set as the default because it's the model shown in
+   MiniMax's current primary API docs, but this is a best guess, not a
+   confirmed requirement — override via `MINIMAX_MODEL` once you know.
+2. **Which endpoint region** — `https://api.minimax.io/v1` is the
+   international endpoint; there's also a mainland-China endpoint at
+   `https://api.minimax.cn/v1`. Override via `MINIMAX_BASE_URL` if needed.
+
+## What it does
+
+Calls MiniMax's OpenAI-compatible endpoint (`POST /chat/completions`)
+with the broker system prompt and the player's message, and returns the
+response text. Any failure — network error, timeout, non-200 status, or
+a response that doesn't match the expected shape — raises the same
+`MiniMaxRequestError` the mock uses, so `game_service`'s existing
+failure/retry handling (`AI_REQUEST_FAILED` → `retry_ai_call`) applies
+unchanged.
+
+## Testing without live network access
+
+All tests mock `requests.post` directly (`unittest.mock.patch`), so they
+run offline and verify the actual request-building and response-parsing
+logic — not just scripted behavior like the `MockMiniMaxClient` tests do.
+This environment has no network access to `api.minimax.io`, so **the
+client has not been exercised against the real MiniMax API yet** — that
+first live call is worth doing deliberately (e.g. a short throwaway
+script hitting the real endpoint with a trivial prompt) once you have
+confirmed the model/endpoint details above, before wiring it into any
+real round.
+
+## What's next
+
+With the real AI integration in place, natural next steps:
+1. **Iterate on the actual broker system prompt** against the real
+   model — this is genuinely useful design work independent of anything
+   else, and the current placeholder prompt (`BROKER_SYSTEM_PROMPT` in
+   `game_service.py`) is intentionally minimal, not tuned.
+2. Still-open blockchain questions (EVM-compatibility, exact burn
+   mechanism) — once answered, the same pattern used here (mock →
+   real client, same interface, zero orchestrator changes) applies to
+   swapping `MockChainClient` for a real one.
 
