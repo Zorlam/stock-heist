@@ -1,0 +1,5 @@
+Flask==3.*
+Flask-SQLAlchemy==3.*
+SQLAlchemy==2.*
+psycopg2-binary==2.*
+pytest==8.*
