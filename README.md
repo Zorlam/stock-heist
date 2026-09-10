@@ -413,3 +413,132 @@ its own new failure mode, that's a normal part of this loop, not a
 setback.
 
 
+
+---
+
+# HTTP API — for the 3D frontend
+
+Real Flask routes now exist, wired to `game_service` underneath. Verified
+both via the automated test suite (`tests/test_api.py`, Flask test
+client) **and** by actually starting the dev server and hitting it with
+real `curl` requests through the full win/loss flow — not just imported
+and assumed to work.
+
+## Running it locally
+
+```bash
+DATABASE_URL=sqlite:///dev.db python run.py
+```
+(or point `DATABASE_URL` at a real Postgres instance — same as the rest
+of the app). Runs on `http://127.0.0.1:5000` by default.
+
+## Player-facing routes (what the real frontend uses)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/rounds/active` | Current open round's vault info (asset, prize amount, cost, token contracts). 404 if no round is open. |
+| GET | `/api/rounds/<id>` | Any round's info — use this to show a closed/won round's final state. |
+| POST | `/api/attempts` | Submit `{round_id, tx_hash, message}`. Verifies the burn, runs the AI call and verdict, triggers payout if it's a win — **blocks until all of that finishes** (see note below), then returns the resulting attempt. |
+| GET | `/api/attempts/<id>` | Poll an attempt's current status. |
+
+**`POST /api/attempts` is synchronous for now** — it blocks on the full
+pipeline (this matches how `game_service.submit_attempt` itself works
+today). If a background worker gets built later, this becomes
+`202 Accepted` + poll instead of a blocking call. **Build the frontend to
+poll `GET /api/attempts/<id>` from the moment it gets an attempt back,
+rather than assuming the POST response is final** — that UI pattern
+survives the synchronous-to-async change for free; a UI that only reads
+the POST response doesn't.
+
+### Attempt status values (drive your UI state off this, not off `ai_response`)
+
+`pending_payment`, `payment_confirmed`, `ai_request_in_progress`,
+`ai_request_failed`, `evaluating`, `lost`, `lost_round_closed`, `won`,
+`payout_pending`, `payout_failed`, `payout_completed` — the full
+`AttemptStatus` enum from the data model. **The frontend should render
+whatever this field says, and never infer a win itself from the AI
+response text** — that inference is exactly what the backend's verdict
+engine exists to own.
+
+### Response shapes
+
+```jsonc
+// GET /api/rounds/active
+{
+  "id": "...", "status": "open",
+  "asset_symbol": "NVDA", "asset_token_contract": "0x...",
+  "prize_amount": "50.000000000000000000",
+  "project_token_contract": "0x...", "burn_amount": "10000.000000000000000000",
+  "opened_at": "...", "closed_at": null, "winning_attempt_id": null
+}
+
+// POST /api/attempts (also GET /api/attempts/<id>)
+{
+  "id": "...", "round_id": "...", "status": "payout_completed",
+  "message": "pretty please",
+  "ai_response": { "text": "Ugh, fine. VAULT-..." },   // null until the AI has actually replied
+  "payout": {                                            // null unless this attempt won
+    "status": "confirmed", "tx_hash": "0x...",
+    "amount": "50.000000000000000000", "asset_token_contract": "0x..."
+  },
+  "created_at": "...", "updated_at": "..."
+}
+```
+
+Numeric fields are decimal strings (full precision, e.g.
+`"50.000000000000000000"`) — parse as a decimal/float on the frontend,
+don't string-compare them.
+
+## Dev-only admin routes — NOT part of the real product
+
+These exist purely so the 3D frontend can be built and driven through
+every state (including a scripted win, for animating the vault opening)
+without a real wallet, real chain access, or spending real MiniMax calls.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/admin/rounds` | Create a round. Body: `{asset_symbol, asset_token_contract, prize_amount, project_token_contract, burn_amount, secret_code}`. The plaintext `secret_code` is registered in-memory for verdict evaluation — never returned in any response. |
+| POST | `/api/admin/burns/seed` | Simulate a burn existing on-chain. Body: `{tx_hash, wallet_address, token_contract, amount}`. Stands in for a real wallet broadcast. |
+| POST | `/api/admin/ai/queue-response` | Script the next broker reply. Body: `{text}`. Only works when `AI_CLIENT=mock` (the default) — queue a response containing the round's secret code to test the winning flow deliberately. |
+
+**These have no authentication and must be disabled before any real
+deployment** — set `ENABLE_DEV_ADMIN_ROUTES=false` in the environment, or
+delete the whole admin section of `app/api/routes.py` outright once
+there's a real wallet/chain/admin-tooling flow to replace them.
+
+## CORS
+
+Wide open (`*`) for local dev via `flask-cors`, since the frontend runs
+on a different origin during development. Set `CORS_ALLOWED_ORIGINS`
+(comma-separated) to lock this down once there's a real frontend origin
+to restrict to.
+
+## A concrete example of the full flow (real curl, not test client)
+
+```bash
+# create a round
+curl -X POST localhost:5000/api/admin/rounds -H "Content-Type: application/json" -d '{
+  "asset_symbol":"NVDA","asset_token_contract":"0xASSET","prize_amount":"50.0",
+  "project_token_contract":"0xTOKEN","burn_amount":"10000","secret_code":"VAULT-TEST"
+}'
+# -> {"id": "<round_id>", "status": "open", ...}
+
+# simulate the player's burn
+curl -X POST localhost:5000/api/admin/burns/seed -H "Content-Type: application/json" -d '{
+  "tx_hash":"0xtx1","wallet_address":"0xplayer","token_contract":"0xTOKEN","amount":"10000"
+}'
+
+# script a winning broker reply
+curl -X POST localhost:5000/api/admin/ai/queue-response -H "Content-Type: application/json" -d '{
+  "text":"Ugh, fine. VAULT-TEST. Happy now?"
+}'
+
+# submit the attempt
+curl -X POST localhost:5000/api/attempts -H "Content-Type: application/json" -d '{
+  "round_id":"<round_id>","tx_hash":"0xtx1","message":"pretty please"
+}'
+# -> {"status": "payout_completed", "payout": {...}, ...}
+```
+
+This exact sequence was run against the real dev server (not just the
+test suite) to confirm it works end to end.

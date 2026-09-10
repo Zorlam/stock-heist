@@ -1,5 +1,6 @@
 Flask==3.*
 Flask-SQLAlchemy==3.*
+Flask-Cors==4.*
 SQLAlchemy==2.*
 psycopg2-binary==2.*
 requests==2.*

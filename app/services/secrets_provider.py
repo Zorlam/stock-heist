@@ -52,3 +52,27 @@ class InMemorySecretsProvider(RoundSecretsProvider):
 
     def get_code(self, round_id) -> str:
         return self._codes[str(round_id)]
+
+
+class MutableInMemorySecretsProvider(RoundSecretsProvider):
+    """Test/dev/API-layer only. Same idea as InMemorySecretsProvider, but
+    codes can be registered after construction — used by the dev admin
+    routes (see app/api/routes.py) to register a round's plaintext code
+    at the moment the round is created via POST /api/admin/rounds, since
+    there's no real secrets manager wired up yet.
+
+    This is in-process memory: it does not survive a process restart, and
+    it is not shared across multiple worker processes. Both of those are
+    fine for local/dev use with a single Flask process, and both are
+    exactly why this must be replaced before any real deployment — see
+    the module docstring above.
+    """
+
+    def __init__(self):
+        self._codes: dict[str, str] = {}
+
+    def add_code(self, round_id, code: str) -> None:
+        self._codes[str(round_id)] = code
+
+    def get_code(self, round_id) -> str:
+        return self._codes[str(round_id)]

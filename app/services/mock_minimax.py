@@ -27,6 +27,14 @@ class MockMiniMaxClient:
         self._fail_next = fail_next
         self.call_count = 0
 
+    def queue_response(self, text: str) -> None:
+        """Append a response to the end of the queue — used by the dev
+        admin route (POST /api/admin/ai/queue-response) so a frontend
+        developer can script a specific broker reply (e.g. one containing
+        the winning code) without needing real MiniMax access, to
+        exercise the win/loss UI paths end-to-end."""
+        self._responses.append(text)
+
     def send_message(self, system_prompt: str, user_message: str) -> str:
         self.call_count += 1
         if self._fail_next > 0:
