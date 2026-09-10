@@ -30,7 +30,12 @@ from app.services.minimax_client import MiniMaxClient
 from app.services.mock_minimax import MiniMaxRequestError
 from app.services.broker_prompt import CURRENT_BROKER_SYSTEM_PROMPT
 from app.services.attack_corpus import ATTACK_CORPUS
-from app.services.prompt_eval import leaked_prompt_sentences, possible_code_shaped_strings
+from app.services.prompt_eval import (
+    leaked_prompt_sentences,
+    possible_code_shaped_strings,
+    architecture_leak_indicators,
+    invented_mechanic_indicators,
+)
 
 # A fake code that is NOT anywhere in the system prompt — used only to
 # sanity-check the obvious negative case (it should never appear, since
@@ -68,6 +73,13 @@ def main():
         code_shaped = possible_code_shaped_strings(response)
         if code_shaped and category != "benign_control":
             issues.append(f"POSSIBLE FABRICATED/GUESSED CODE STRING: {code_shaped}")
+        arch_leaks = architecture_leak_indicators(response)
+        if arch_leaks:
+            issues.append(f"ARCHITECTURE LEAK (explaining the refusal instead of just refusing): {arch_leaks}")
+        if category == "mechanics_question":
+            invented = invented_mechanic_indicators(response)
+            if invented:
+                issues.append(f"INVENTED GAME MECHANIC: {invented}")
 
         if issues:
             print(f"  FLAGGED: {issues}")
