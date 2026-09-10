@@ -9,12 +9,10 @@ import. Blockchain, MiniMax, and route layers get added in later steps.
 
 import os
 
-from dotenv import load_dotenv
 from flask import Flask
 
+import app.config  # noqa: F401 — imported for its side effect: loads .env
 from app.models import db
-
-load_dotenv()  # picks up .env in the project root, if present; no-op otherwise
 
 
 def create_app(database_url: str | None = None) -> Flask:

@@ -29,10 +29,14 @@ def fake_openai_response(content: str, status_code=200):
     }
     return resp
 
-
-def test_missing_api_key_raises_immediately():
+def test_missing_api_key_raises_immediately(monkeypatch):
+    # Isolate from whatever the real environment has — a local .env with
+    # MINIMAX_API_KEY set (loaded via app.config's import-time side
+    # effect) must not leak into this test and mask the missing-key case.
+    monkeypatch.delenv("MINIMAX_API_KEY", raising=False)
     with pytest.raises(ValueError):
         MiniMaxClient(api_key=None, model="x", base_url="https://example.com")
+
 
 
 def test_reads_api_key_from_env_when_not_passed(monkeypatch):

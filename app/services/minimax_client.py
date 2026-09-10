@@ -22,6 +22,7 @@ import os
 
 import requests
 
+import app.config  # noqa: F401 — imported for its side effect: loads .env
 from app.services.mock_minimax import MiniMaxRequestError  # same exception type as the mock
 
 DEFAULT_BASE_URL = "https://api.minimax.io/v1"
