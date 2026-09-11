@@ -1,3 +1,4 @@
+
 """
 Stand-in for real Robinhood Chain RPC calls. Same interface shape the
 real client will need: something that can look up whether a given burn
@@ -9,6 +10,8 @@ wallet, entirely outside our backend — our only job is to *verify* it
 happened. `seed_burn()` exists purely so tests can simulate "this
 transaction already exists on-chain" before the service asks about it.
 """
+
+import uuid
 
 
 class ChainRequestError(Exception):
@@ -43,4 +46,4 @@ class MockChainClient:
         if self._fail_next_payout > 0:
             self._fail_next_payout -= 1
             raise ChainRequestError("simulated payout submission failure")
-        return f"0xpayout_{wallet_address}_{amount}"
+        return f"0xpayout_{uuid.uuid4()}_{wallet_address}_{amount}"
