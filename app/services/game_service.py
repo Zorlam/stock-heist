@@ -31,6 +31,7 @@ Design notes worth reading before touching this file:
 """
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
 
@@ -112,7 +113,7 @@ def submit_attempt(*, round_id, tx_hash, message, chain_client, ai_client, secre
         raise PaymentVerificationFailedError(f"burn tx {tx_hash} not found on-chain")
     if onchain["token_contract"] != round_.project_token_contract:
         raise PaymentVerificationFailedError("burn token contract does not match this round")
-    if float(onchain["amount"]) < float(round_.burn_amount):
+    if Decimal(str(onchain["amount"])) < Decimal(str(round_.burn_amount)):
         raise PaymentVerificationFailedError(
             f"burn amount {onchain['amount']} is less than required {round_.burn_amount}"
         )
