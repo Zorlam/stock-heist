@@ -68,7 +68,16 @@ def make_transaction(
         },
         "meta": {
             "err": error,
-            "preTokenBalances": [],
+            "preTokenBalances": [
+    {
+        "accountIndex": 1,
+        "mint": mint,
+        "owner": authority,
+        "uiTokenAmount": {
+            "decimals": decimals,
+        },
+    }
+],
             "innerInstructions": [],
         },
     }

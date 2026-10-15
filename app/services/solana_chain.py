@@ -250,26 +250,7 @@ class SolanaBurnVerifier:
                         continue
 
             else:
-                # Fall back to parsed instruction metadata.
-                if authority not in signers:
-                    continue
-
-                if instruction_mint != self.token_mint:
-                    continue
-
-                if instruction_decimals is None:
-                    continue
-
-                try:
-                    actual_decimals = int(instruction_decimals)
-                except (TypeError, ValueError):
-                    continue
-
-                if not 0 <= actual_decimals <= 18:
-                    continue
-
-                actual_mint = instruction_mint
-                owner = authority
+                continue
             try:
                 raw_amount = int(info["amount"])
             except (KeyError, TypeError, ValueError):
