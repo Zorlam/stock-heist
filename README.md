@@ -102,4 +102,4 @@ python -m pytest tests/test_solana_chain.py -q
 
 ## Development Status
 
-The backend includes game logic, AI integration, database operations, and Solana burn-verification functionality. Runtime configuration and external service integrations should be verified in the target environment before deployment.
+The backend includes game logic, AI integration, database operations, and Solana burn-verification functionality. Runtime configuration and external service integrations should be verified in the target environment before any deployment
