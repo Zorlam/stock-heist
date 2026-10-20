@@ -63,7 +63,7 @@ Start the Flask application using the project's configured entry point.
 The development server has previously been run at:
 
 ```text
-http://127.0.0.1:5000
+http://127.0.0.1:5000 (On your browser)
 ```
 
 ## API Usage
