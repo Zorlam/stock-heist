@@ -18,6 +18,7 @@ A Flask-based backend for Stock Heist, a game that integrates AI interactions wi
 * PostgreSQL
 * Solana RPC integration
 * Pytest
+github actions
 
 ## Getting Started
 
