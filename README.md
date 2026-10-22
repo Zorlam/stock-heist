@@ -1,4 +1,4 @@
-# Stock Heist — Backend API
+# Stock Heist 
 
 Flask + PostgreSQL backend for **Stock Heist**, a 3D web game built around an AI broker guarding a vault.
 
