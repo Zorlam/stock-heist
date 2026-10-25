@@ -653,3 +653,4 @@ The development server is not a production WSGI server. Configure the intended f
 * [ ] Restrict `CORS_ALLOWED_ORIGINS` to the intended frontend origin.
 * [ ] Use a production WSGI server rather than Flask's development server.
 * [ ] Run the live MiniMax smoke test and review its transcripts.
+project paused untill minimax tokens come back
