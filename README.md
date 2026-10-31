@@ -394,7 +394,7 @@ Example response:
 
 The status and payout fields depend on the actual attempt outcome and processing state. The example above illustrates a losing attempt; it is not a guarantee of a particular response for every submission.
 
-Expected error categories include:
+Expected error categories in this project:
 
 | HTTP status | Meaning                                                                                           |
 | ----------- | ------------------------------------------------------------------------------------------------- |
