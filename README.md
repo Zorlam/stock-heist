@@ -207,7 +207,7 @@ The application uses `MockChainClient`. Burns must be seeded into the mock clien
 
 #### Solana mode
 
-```env
+``env
 CHAIN_CLIENT=solana
 SOLANA_RPC_URL=your-solana-rpc-endpoint
 PROJECT_TOKEN_MINT=your-spl-token-mint-address
